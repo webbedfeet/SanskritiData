@@ -16,7 +16,7 @@ std_phone <- function(s) {
 
 library(tidyverse)
 dat <- readLines("data/raw/Sanskriti_directory.md")
-d <- strsplit(paste(dat, collapse = "\n"), "\n\n")[[1]]
+d <- strsplit(paste(dat, collapse = "\n"), "\n\n")[[1]] # Bring each record into 1 line, then separate lines
 
 fullnames <- str_match(d, "^([A-Za-z, &\\(\\)\\.\\-\\']+)\\n")[,2]
 addresses <- map_chr(d, ~str_match(., "\\n([0-9P]+[A-Za-z0-9#\\., #\\']+)\\n")[,2]) %>%
@@ -140,7 +140,7 @@ saveRDS(directory_printed, file = "data/rda/printed_directory.rds", compress = T
 
 ## %######################################################%##
 #                                                          #
-####              Sanskriti web directory               ####
+####              Sanskriti web directory (old way)      ####
 #                                                          #
 ## %######################################################%##
 
@@ -203,3 +203,22 @@ user_meta %>%
   select(-umeta_id) %>%
   spread(meta_key, meta_value) %>%
   select(user_id, starts_with('billing')) -> user_directory
+
+##%######################################################%##
+#                                                          #
+####        Sanskriti Online Directory (from WP)        ####
+#                                                          #
+##%######################################################%##
+library(tidyverse)
+library(readxl)
+online <- read_excel('data/raw/OnlineMembership Aug 2018.xlsx') %>%
+  set_tidy_names(syntactic = TRUE) %>% # Use make.names to make classically valid names
+  set_names(tolower(names(.))) # Make everything lower case
+
+## Normalizing this data
+
+online <- online %>%
+  mutate(fullnames = paste(last.name, first.name, sep = ', ')) %>%
+  mutate(fullnames = ifelse(!is.na(spouse), paste(fullnames, spouse, sep = ' & '), fullnames)) %>%
+  arrange(fullnames) %>%
+  select(fullnames, everything())
