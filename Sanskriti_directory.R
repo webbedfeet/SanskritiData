@@ -218,7 +218,30 @@ online <- read_excel('data/raw/OnlineMembership Aug 2018.xlsx') %>%
 ## Normalizing this data
 
 online <- online %>%
+  mutate_at(vars(last.name, first.name, spouse), str_to_title) %>%
   mutate(fullnames = paste(last.name, first.name, sep = ', ')) %>%
   mutate(fullnames = ifelse(!is.na(spouse), paste(fullnames, spouse, sep = ' & '), fullnames)) %>%
   arrange(fullnames) %>%
   select(fullnames, everything())
+
+states <- online$state %>% str_to_title()
+states <- case_when(
+  states == 'District Of Columbia' ~ 'DC',
+  states == 'Maryland' ~ 'MD',
+  states == 'Virginia' ~ 'VA',
+  states == 'West Bengal' ~ 'WB',
+  TRUE ~ states
+  ) %>%
+  str_to_upper()
+online$state <- states
+
+phones <- str_match_all(online$phone, regex_phone) %>%
+  map(~apply(., 1, std_phone_format)) %>%
+  map_chr(paste, collapse=', ')
+phones[phones == 'NA-NA-NA'] <- NA
+online$phone <- phones
+
+
+tmpnames = normalized_data %>%
+mutate(tmpnames = str_match(FullName, '^([A-Za-z, \\-]+)[ \\&]*')[,2] %>% str_trim) %>%
+pull(tmpnames)
